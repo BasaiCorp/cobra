@@ -25,7 +25,7 @@ impl RegistryClient {
             .pool_idle_timeout(Duration::from_secs(30))
             .tcp_keepalive(Duration::from_secs(60))
             .tcp_nodelay(true)
-            .http2_prior_knowledge()
+            .http1_title_case_headers()
             .timeout(HTTP_TIMEOUT)
             .user_agent("cobra/1.0 (blazingly-fast-python-package-manager)")
             .gzip(true)

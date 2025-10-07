@@ -36,7 +36,8 @@ pub async fn execute(no_cache: bool) -> Result<()> {
     // Resolve dependencies
     println!("{} Resolving dependency graph...", "🔍".bright_blue());
     let resolver = DependencyResolver::new(client.clone(), cache.clone());
-    let resolved = resolver.resolve(&config.dependencies).await?;
+    let dependencies_list = config.get_dependencies_list();
+    let resolved = resolver.resolve(&dependencies_list).await?;
     
     let resolve_time = start.elapsed();
     println!("{} Resolved {} packages in {:.2}ms", 

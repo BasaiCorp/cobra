@@ -36,14 +36,18 @@ async fn update_single_package(config: &CobraConfig, package_name: &str) -> Resu
     let progress = Arc::new(ProgressTracker::new());
     
     // Find the package in dependencies
-    let dep = config.dependencies.iter()
-        .find(|d| d.name == package_name)
+    let version_spec = config.dependencies.get(package_name)
         .ok_or_else(|| CobraError::PackageNotFound(package_name.to_string()))?;
     
     println!("{} Checking for updates...", "🔍".bright_blue());
     
+    let dep = crate::Dependency {
+        name: package_name.to_string(),
+        version_spec: version_spec.clone(),
+    };
+    
     let resolver = DependencyResolver::new(client.clone(), Some(cache.clone()));
-    let resolved = resolver.resolve(&[dep.clone()]).await?;
+    let resolved = resolver.resolve(&[dep]).await?;
     
     let installer = Installer::new(client, Some(cache), progress);
     installer.install_parallel(resolved).await?;
@@ -59,8 +63,9 @@ async fn update_all_packages(config: &CobraConfig) -> Result<()> {
     
     println!("{} Resolving latest versions...", "🔍".bright_blue());
     
+    let dependencies_list = config.get_dependencies_list();
     let resolver = DependencyResolver::new(client.clone(), Some(cache.clone()));
-    let resolved = resolver.resolve(&config.dependencies).await?;
+    let resolved = resolver.resolve(&dependencies_list).await?;
     
     println!("{} Installing {} packages...", "📦".bright_blue(), resolved.len());
     

@@ -7,9 +7,10 @@ use tokio::fs;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CobraConfig {
     pub project: ProjectInfo,
-    pub dependencies: Vec<Dependency>,
     #[serde(default)]
-    pub dev_dependencies: Vec<Dependency>,
+    pub dependencies: HashMap<String, String>,
+    #[serde(default, rename = "dev-dependencies")]
+    pub dev_dependencies: HashMap<String, String>,
     #[serde(default)]
     pub tool: ToolConfig,
 }
@@ -30,12 +31,14 @@ pub struct ToolConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct CobraToolConfig {
-    #[serde(default = "default_python_version")]
+    #[serde(default = "default_python_version", rename = "python-version")]
     pub python_version: String,
-    #[serde(default = "default_parallel_downloads")]
+    #[serde(default = "default_parallel_downloads", rename = "parallel-downloads")]
     pub parallel_downloads: usize,
-    #[serde(default = "default_cache_enabled")]
+    #[serde(default = "default_cache_enabled", rename = "cache-enabled")]
     pub cache_enabled: bool,
+    #[serde(default = "default_install_dir", rename = "install-dir")]
+    pub install_dir: String,
 }
 
 impl Default for CobraToolConfig {
@@ -44,6 +47,7 @@ impl Default for CobraToolConfig {
             python_version: default_python_version(),
             parallel_downloads: default_parallel_downloads(),
             cache_enabled: default_cache_enabled(),
+            install_dir: default_install_dir(),
         }
     }
 }
@@ -58,6 +62,10 @@ fn default_parallel_downloads() -> usize {
 
 fn default_cache_enabled() -> bool {
     true
+}
+
+fn default_install_dir() -> String {
+    ".cobra_packages".to_string()
 }
 
 impl CobraConfig {
@@ -76,23 +84,31 @@ impl CobraConfig {
     }
 
     pub fn add_dependency(&mut self, name: &str, version: &str) {
-        // Remove if already exists
-        self.dependencies.retain(|d| d.name != name);
-        
-        self.dependencies.push(Dependency {
-            name: name.to_string(),
-            version_spec: version.to_string(),
-        });
+        self.dependencies.insert(name.to_string(), version.to_string());
     }
 
     pub fn remove_dependency(&mut self, name: &str) -> bool {
-        let len_before = self.dependencies.len();
-        self.dependencies.retain(|d| d.name != name);
-        len_before != self.dependencies.len()
+        self.dependencies.remove(name).is_some()
     }
 
-    pub fn get_dependency(&self, name: &str) -> Option<&Dependency> {
-        self.dependencies.iter().find(|d| d.name == name)
+    pub fn get_dependency(&self, name: &str) -> Option<String> {
+        self.dependencies.get(name).cloned()
+    }
+
+    /// Convert HashMap dependencies to Vec<Dependency> for processing
+    pub fn get_dependencies_list(&self) -> Vec<Dependency> {
+        self.dependencies
+            .iter()
+            .map(|(name, version_spec)| Dependency {
+                name: name.clone(),
+                version_spec: version_spec.clone(),
+            })
+            .collect()
+    }
+
+    /// Get install directory path
+    pub fn get_install_dir(&self) -> String {
+        self.tool.cobra.install_dir.clone()
     }
 }
 
@@ -104,8 +120,8 @@ impl Default for CobraConfig {
                 version: "0.1.0".to_string(),
                 description: String::new(),
             },
-            dependencies: Vec::new(),
-            dev_dependencies: Vec::new(),
+            dependencies: HashMap::new(),
+            dev_dependencies: HashMap::new(),
             tool: ToolConfig::default(),
         }
     }

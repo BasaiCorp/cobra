@@ -9,18 +9,17 @@ version = "0.1.0"
 description = "A Python project managed by Cobra"
 
 [dependencies]
-# Add your dependencies here
-# Example: requests = "^2.31.0"
+# requests = "^2.31.0"
+# numpy = "^1.24.0"
 
 [dev-dependencies]
-# Development dependencies
-# Example: pytest = "^7.4.0"
+# pytest = "^7.4.0"
 
 [tool.cobra]
-# Cobra-specific configuration
 python-version = "3.11"
 parallel-downloads = 16
 cache-enabled = true
+install-dir = ".cobra_packages"  # Local package directory
 "#;
 
 pub async fn execute(path: &str) -> Result<()> {
