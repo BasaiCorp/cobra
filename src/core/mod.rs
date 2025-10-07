@@ -6,5 +6,6 @@
 pub mod cache;
 pub mod config;
 pub mod installer;
+pub mod package_manager;
 pub mod python;
 pub mod resolver;

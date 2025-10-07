@@ -1,5 +1,6 @@
 use crate::{Result, CobraError, Package, constants::*};
 use crate::core::cache::MultiLevelCache;
+use crate::core::package_manager::LocalPackageManager;
 use crate::registry::client::RegistryClient;
 use crate::utils::progress::ProgressTracker;
 use crate::utils::hash::verify_package_hash;
@@ -18,6 +19,7 @@ pub struct Installer {
     client: Arc<RegistryClient>,
     cache: Option<Arc<MultiLevelCache>>,
     progress: Arc<ProgressTracker>,
+    package_manager: Arc<LocalPackageManager>,
 }
 
 impl Installer {
@@ -25,11 +27,13 @@ impl Installer {
         client: Arc<RegistryClient>,
         cache: Option<Arc<MultiLevelCache>>,
         progress: Arc<ProgressTracker>,
+        package_manager: Arc<LocalPackageManager>,
     ) -> Self {
         Self {
             client,
             cache,
             progress,
+            package_manager,
         }
     }
 
@@ -39,18 +43,45 @@ impl Installer {
             return Ok(());
         }
 
+        // Ensure installation directory exists
+        self.package_manager.ensure_install_dir().await?;
+
+        // Filter out already installed packages
+        let mut packages_to_install = Vec::new();
+        let mut skipped_count = 0;
+
+        for package in packages {
+            if self.package_manager.is_package_installed(&package.name, &package.version).await? {
+                println!("⏭️  Skipping {} {} (already installed)", package.name, package.version);
+                skipped_count += 1;
+            } else {
+                packages_to_install.push(package);
+            }
+        }
+
+        if packages_to_install.is_empty() {
+            println!("✅ All {} packages are already installed!", skipped_count);
+            return Ok(());
+        }
+
+        if skipped_count > 0 {
+            println!("📦 Installing {} new packages ({} already installed)", 
+                packages_to_install.len(), skipped_count);
+        }
+
         // Semaphore to limit concurrent operations
         let semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT_INSTALLS));
         
-        let tasks: Vec<_> = packages.into_iter().map(|pkg| {
+        let tasks: Vec<_> = packages_to_install.into_iter().map(|pkg| {
             let sem = Arc::clone(&semaphore);
             let client = Arc::clone(&self.client);
             let cache = self.cache.clone();
             let progress = Arc::clone(&self.progress);
+            let package_manager = Arc::clone(&self.package_manager);
             
             tokio::spawn(async move {
                 let _permit = sem.acquire().await.unwrap();
-                Self::install_single(pkg, client, cache, progress).await
+                Self::install_single(pkg, client, cache, progress, package_manager).await
             })
         }).collect();
 
@@ -69,6 +100,7 @@ impl Installer {
         client: Arc<RegistryClient>,
         cache: Option<Arc<MultiLevelCache>>,
         progress: Arc<ProgressTracker>,
+        package_manager: Arc<LocalPackageManager>,
     ) -> Result<()> {
         // Check cache first
         let cache_key = format!("package:{}:{}", package.name, package.version);
@@ -89,8 +121,11 @@ impl Installer {
         // Extract package (skip hash verification for now)
         let temp_path = std::env::temp_dir().join(format!("{}.whl", package.name));
         fs::write(&temp_path, &package_data).await?;
-        Self::extract_package_mmap(&temp_path, &package.name).await?;
+        Self::extract_package_mmap(&temp_path, &package.name, &package_manager).await?;
         fs::remove_file(&temp_path).await?;
+
+        // Register the installed package
+        package_manager.register_package(&package).await?;
 
         Ok(())
     }
@@ -117,11 +152,9 @@ impl Installer {
         Ok(bytes::Bytes::from(buffer))
     }
 
-    async fn extract_package_mmap(archive_path: &Path, _package_name: &str) -> Result<()> {
-        // Use local .cobra_packages directory
-        let site_packages = std::env::current_dir()
-            .map_err(|e| CobraError::Io(e))?
-            .join(".cobra_packages");
+    async fn extract_package_mmap(archive_path: &Path, _package_name: &str, package_manager: &LocalPackageManager) -> Result<()> {
+        // Use the package manager's installation directory
+        let site_packages = package_manager.get_install_dir();
 
         // Use memory-mapped file for faster extraction
         let file = std::fs::File::open(archive_path)

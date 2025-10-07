@@ -1,5 +1,5 @@
 use crate::{Result, CobraError};
-use crate::core::{config::CobraConfig, installer::Installer, resolver::DependencyResolver, cache::MultiLevelCache};
+use crate::core::{config::CobraConfig, installer::Installer, resolver::DependencyResolver, cache::MultiLevelCache, package_manager::LocalPackageManager};
 use crate::registry::client::RegistryClient;
 use crate::utils::progress::ProgressTracker;
 use colored::Colorize;
@@ -33,6 +33,10 @@ pub async fn execute(no_cache: bool) -> Result<()> {
     let client = Arc::new(RegistryClient::new());
     let progress = Arc::new(ProgressTracker::new());
     
+    // Initialize package manager with install directory from config
+    let install_dir = std::env::current_dir()?.join(config.get_install_dir());
+    let package_manager = Arc::new(LocalPackageManager::new(install_dir));
+    
     // Resolve dependencies
     println!("{} Resolving dependency graph...", "🔍".bright_blue());
     let resolver = DependencyResolver::new(client.clone(), cache.clone());
@@ -48,7 +52,7 @@ pub async fn execute(no_cache: bool) -> Result<()> {
     
     // Install packages in parallel
     println!("{} Installing packages...", "📦".bright_blue());
-    let installer = Installer::new(client, cache, progress.clone());
+    let installer = Installer::new(client, cache, progress.clone(), package_manager);
     installer.install_parallel(resolved).await?;
     
     let total_time = start.elapsed();

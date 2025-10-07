@@ -1,5 +1,5 @@
 use crate::{Result, CobraError};
-use crate::core::{config::CobraConfig, resolver::DependencyResolver, installer::Installer, cache::MultiLevelCache};
+use crate::core::{config::CobraConfig, resolver::DependencyResolver, installer::Installer, cache::MultiLevelCache, package_manager::LocalPackageManager};
 use crate::registry::client::RegistryClient;
 use crate::utils::progress::ProgressTracker;
 use colored::Colorize;
@@ -35,6 +35,10 @@ async fn update_single_package(config: &CobraConfig, package_name: &str) -> Resu
     let client = Arc::new(RegistryClient::new());
     let progress = Arc::new(ProgressTracker::new());
     
+    // Initialize package manager
+    let install_dir = std::env::current_dir()?.join(config.get_install_dir());
+    let package_manager = Arc::new(LocalPackageManager::new(install_dir));
+    
     // Find the package in dependencies
     let version_spec = config.dependencies.get(package_name)
         .ok_or_else(|| CobraError::PackageNotFound(package_name.to_string()))?;
@@ -49,7 +53,7 @@ async fn update_single_package(config: &CobraConfig, package_name: &str) -> Resu
     let resolver = DependencyResolver::new(client.clone(), Some(cache.clone()));
     let resolved = resolver.resolve(&[dep]).await?;
     
-    let installer = Installer::new(client, Some(cache), progress);
+    let installer = Installer::new(client, Some(cache), progress, package_manager);
     installer.install_parallel(resolved).await?;
     
     println!("{} {} updated successfully", "✓".green(), package_name.cyan());
@@ -61,6 +65,10 @@ async fn update_all_packages(config: &CobraConfig) -> Result<()> {
     let client = Arc::new(RegistryClient::new());
     let progress = Arc::new(ProgressTracker::new());
     
+    // Initialize package manager
+    let install_dir = std::env::current_dir()?.join(config.get_install_dir());
+    let package_manager = Arc::new(LocalPackageManager::new(install_dir));
+    
     println!("{} Resolving latest versions...", "🔍".bright_blue());
     
     let dependencies_list = config.get_dependencies_list();
@@ -69,7 +77,7 @@ async fn update_all_packages(config: &CobraConfig) -> Result<()> {
     
     println!("{} Installing {} packages...", "📦".bright_blue(), resolved.len());
     
-    let installer = Installer::new(client, Some(cache), progress);
+    let installer = Installer::new(client, Some(cache), progress, package_manager);
     installer.install_parallel(resolved).await?;
     
     println!("{} All packages updated successfully", "✓".green().bold());
