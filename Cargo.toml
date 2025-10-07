@@ -1,0 +1,100 @@
+[package]
+name = "cobra"
+version = "0.1.0"
+edition = "2024"
+description = "Ultra-fast Python package manager - 20x faster than pip"
+authors = ["Basai Corporation by Prathmesh Barot <basaicorp06@gmail.com>"]
+license = "MIT"
+repository = "https://github.com/BasaiCorp/cobra"
+keywords = ["python", "package-manager", "pip", "dependencies", "fast"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "cobra"
+path = "src/main.rs"
+
+[dependencies]
+# CLI and config
+clap = { version = "4.4", features = ["derive", "color"] }
+toml = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Performance-critical memory management
+mimalloc = "0.1"
+memmap2 = "0.9"
+bytes = "1.5"
+rustc-hash = "1.1"
+
+# Async runtime and HTTP
+tokio = { version = "1.0", features = ["full", "tracing"] }
+reqwest = { version = "0.11", features = ["json", "stream", "gzip", "brotli"] }
+tokio-util = { version = "0.7", features = ["codec", "io"] }
+futures = "0.3"
+
+# Parallel processing
+rayon = "1.8"
+
+# Data structures and algorithms
+petgraph = "0.6"
+lru = "0.12"
+sled = "0.34"
+bloomfilter = "1.0"
+
+# Archive handling
+zip = "0.6"
+flate2 = "1.0"
+tar = "0.4"
+
+# Cryptography and hashing
+sha2 = "0.10"
+blake3 = "1.5"
+
+# Progress and UX
+indicatif = "0.17"
+console = "0.15"
+colored = "2.0"
+
+# File operations
+walkdir = "2.4"
+tempfile = "3.8"
+
+# Python integration
+pyo3 = { version = "0.20", features = ["auto-initialize"] }
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration
+dirs = "5.0"
+
+# Serialization formats
+rmp-serde = "1.1"
+
+# System utilities
+num_cpus = "1.16"
+
+[dev-dependencies]
+assert_cmd = "2.0"
+predicates = "3.0"
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[profile.release]
+lto = "fat"                    # Link-time optimization
+codegen-units = 1              # Better optimization
+panic = "abort"                # Smaller binary, faster
+opt-level = 3                  # Maximum optimization
+strip = true                   # Remove debug symbols
+
+[profile.dev]
+opt-level = 1                  # Some optimization for dev builds
+
+[features]
+default = ["fast-install"]
+fast-install = []
+experimental = ["fast-install"]
