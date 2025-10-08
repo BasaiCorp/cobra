@@ -92,6 +92,9 @@ impl Installer {
             result.map_err(|e| CobraError::InstallationFailed(e.to_string()))??;
         }
 
+        // Create .pth file to make packages discoverable by Python
+        self.package_manager.create_pth_file().await?;
+
         Ok(())
     }
 
@@ -155,6 +158,9 @@ impl Installer {
     async fn extract_package_mmap(archive_path: &Path, _package_name: &str, package_manager: &LocalPackageManager) -> Result<()> {
         // Use the package manager's installation directory
         let site_packages = package_manager.get_install_dir();
+        
+        // Ensure the site-packages directory exists
+        fs::create_dir_all(&site_packages).await?;
 
         // Use memory-mapped file for faster extraction
         let file = std::fs::File::open(archive_path)

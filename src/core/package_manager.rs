@@ -134,4 +134,58 @@ impl LocalPackageManager {
     pub fn get_install_dir(&self) -> &Path {
         &self.install_dir
     }
+
+    /// Create a .pth file to make packages discoverable by Python
+    pub async fn create_pth_file(&self) -> Result<()> {
+        // Get user site-packages directory
+        let output = std::process::Command::new("python3")
+            .arg("-c")
+            .arg("import site; print(site.getusersitepackages())")
+            .output()
+            .map_err(|e| CobraError::PythonEnv(format!("Failed to get user site-packages: {}", e)))?;
+
+        if !output.status.success() {
+            return Err(CobraError::PythonEnv("Failed to get user site-packages".to_string()));
+        }
+
+        let user_site_packages = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let user_site_path = PathBuf::from(&user_site_packages);
+
+        // Ensure user site-packages exists
+        fs::create_dir_all(&user_site_path).await?;
+
+        // Create .pth file pointing to our installation directory
+        let pth_file = user_site_path.join("cobra-packages.pth");
+        let install_dir_str = self.install_dir.to_string_lossy().to_string();
+        
+        fs::write(&pth_file, format!("{}\n", install_dir_str)).await?;
+        
+        println!("📝 Created Python path file: {}", pth_file.display());
+        println!("🔗 Packages are now available to Python globally!");
+        
+        Ok(())
+    }
+
+    /// Remove the .pth file
+    pub async fn remove_pth_file(&self) -> Result<()> {
+        let output = std::process::Command::new("python3")
+            .arg("-c")
+            .arg("import site; print(site.getusersitepackages())")
+            .output()
+            .map_err(|e| CobraError::PythonEnv(format!("Failed to get user site-packages: {}", e)))?;
+
+        if !output.status.success() {
+            return Ok(()); // Silently fail if we can't get site-packages
+        }
+
+        let user_site_packages = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        let pth_file = PathBuf::from(&user_site_packages).join("cobra-packages.pth");
+
+        if pth_file.exists() {
+            fs::remove_file(&pth_file).await?;
+            println!("🗑️  Removed Python path file: {}", pth_file.display());
+        }
+
+        Ok(())
+    }
 }
