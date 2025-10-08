@@ -71,6 +71,9 @@ pub enum CobraError {
     
     #[error("Hash verification failed")]
     HashMismatch,
+    
+    #[error("Invalid input: {0}")]
+    InvalidInput(String),
 }
 
 pub type Result<T> = std::result::Result<T, CobraError>;
@@ -84,6 +87,9 @@ pub struct Package {
     pub download_url: String,
     pub hash: Option<String>,
     pub size: Option<u64>,
+    pub description: Option<String>,
+    pub author: Option<String>,
+    pub homepage: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]

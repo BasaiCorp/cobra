@@ -71,6 +71,9 @@ impl PackageCloudRegistry {
             download_url,
             hash: None,
             size: None,
+            description: None,
+            author: None,
+            homepage: None,
         })
     }
 

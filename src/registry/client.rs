@@ -124,6 +124,13 @@ impl RegistryClient {
             }
         }
 
+        // Extract additional metadata
+        let description = info["summary"].as_str().map(|s| s.to_string());
+        let author = info["author"].as_str().map(|s| s.to_string());
+        let homepage = info["home_page"].as_str()
+            .or_else(|| info["project_url"].as_str())
+            .map(|s| s.to_string());
+
         Ok(Package {
             name: name.to_string(),
             version,
@@ -131,6 +138,9 @@ impl RegistryClient {
             download_url,
             hash,
             size,
+            description,
+            author,
+            homepage,
         })
     }
 

@@ -44,6 +44,21 @@ enum Commands {
         #[arg(short, long)]
         package: Option<String>,
     },
+    
+    /// List installed packages
+    List,
+    
+    /// Show detailed package information
+    Show {
+        package: String,
+    },
+    
+    /// Search PyPI for packages
+    Search {
+        query: String,
+        #[arg(short, long, default_value = "10")]
+        limit: usize,
+    },
 }
 
 #[tokio::main]
@@ -74,6 +89,15 @@ async fn main() {
         }
         Commands::Update { package } => {
             cobra::cli::update::execute(package).await
+        }
+        Commands::List => {
+            cobra::cli::list::execute().await
+        }
+        Commands::Show { package } => {
+            cobra::cli::show::execute(package).await
+        }
+        Commands::Search { query, limit } => {
+            cobra::cli::search::execute(query, Some(limit)).await
         }
     };
     
