@@ -59,6 +59,22 @@ enum Commands {
         #[arg(short, long, default_value = "10")]
         limit: usize,
     },
+    
+    /// Uninstall packages from system
+    Uninstall {
+        packages: Vec<String>,
+    },
+    
+    /// Generate requirements.txt from installed packages
+    Freeze {
+        #[arg(short, long)]
+        output: Option<String>,
+        #[arg(short, long, default_value = "pip")]
+        format: String,
+    },
+    
+    /// Check for dependency conflicts and issues
+    Check,
 }
 
 #[tokio::main]
@@ -98,6 +114,15 @@ async fn main() {
         }
         Commands::Search { query, limit } => {
             cobra::cli::search::execute(query, Some(limit)).await
+        }
+        Commands::Uninstall { packages } => {
+            cobra::cli::uninstall::execute(packages).await
+        }
+        Commands::Freeze { output, format } => {
+            cobra::cli::freeze::execute_with_format(output, Some(format)).await
+        }
+        Commands::Check => {
+            cobra::cli::check::execute().await
         }
     };
     

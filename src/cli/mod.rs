@@ -1,8 +1,11 @@
 pub mod add;
+pub mod check;
+pub mod freeze;
 pub mod init;
 pub mod install;
 pub mod list;
 pub mod remove;
 pub mod search;
 pub mod show;
+pub mod uninstall;
 pub mod update;

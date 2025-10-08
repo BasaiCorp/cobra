@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
 use crate::{Result, CobraError};
-use tempfile::NamedTempFile;
 
 /// Atomic write operation - write to temp file then rename
 pub async fn atomic_write(path: &Path, contents: &[u8]) -> Result<()> {

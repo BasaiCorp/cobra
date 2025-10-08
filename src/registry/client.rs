@@ -1,7 +1,6 @@
 use crate::{Result, CobraError, Package, Dependency, constants::*};
 use reqwest::{Client, ClientBuilder, Response};
 use std::time::Duration;
-use std::sync::Arc;
 
 /// High-performance HTTP client with connection pooling and HTTP/2
 pub struct RegistryClient {

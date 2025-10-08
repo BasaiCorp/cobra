@@ -1,4 +1,4 @@
-use crate::{Result, CobraError, Package, constants::*};
+use crate::{Result, CobraError, constants::*};
 use bytes::Bytes;
 use lru::LruCache;
 use sled::Db;

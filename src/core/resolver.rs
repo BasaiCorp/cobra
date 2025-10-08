@@ -1,11 +1,11 @@
-use crate::{Result, CobraError, Package, Dependency, constants::*};
+use crate::{Result, CobraError, Package, Dependency};
 use crate::core::cache::MultiLevelCache;
 use crate::registry::client::RegistryClient;
 use petgraph::Graph;
 use petgraph::algo::toposort;
 use rayon::prelude::*;
 use std::sync::Arc;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use rustc_hash::FxHashMap;
 
 pub struct DependencyResolver {

@@ -1,4 +1,4 @@
-use crate::{Result, CobraError, Package};
+use crate::{Result, CobraError};
 use reqwest::Client;
 
 /// PyPI registry implementation

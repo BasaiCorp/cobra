@@ -2,7 +2,7 @@ use blake3::Hasher;
 use sha2::{Sha256, Digest};
 use std::path::Path;
 use tokio::io::AsyncReadExt;
-use crate::{Result, CobraError};
+use crate::Result;
 
 /// Verify package hash using BLAKE3 (faster) or SHA256
 pub async fn verify_package_hash(path: &Path, expected_hash: &str) -> Result<bool> {
